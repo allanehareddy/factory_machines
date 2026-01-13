@@ -1,0 +1,95 @@
+package com.example.factory_machine.service;
+
+import com.example.factory_machine.dto.BatchIngestResponse;
+import com.example.factory_machine.dto.EventRequestDto;
+import com.example.factory_machine.dto.RejectionDto;
+import com.example.factory_machine.model.EventEntity;
+import com.example.factory_machine.repository.EventRepository;
+import com.example.factory_machine.util.PayloadComparator;
+import com.example.factory_machine.validation.EventValidator;
+import jakarta.transaction.Transactional;
+import org.springframework.stereotype.Service;
+import com.example.factory_machine.service.EventIngestionService;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class EventIngestionService {
+
+    private final EventRepository repository;
+    private final EventValidator validator;
+    private final PayloadComparator comparator;
+
+    public EventIngestionService(
+            EventRepository repository,
+            EventValidator validator,
+            PayloadComparator comparator) {
+        this.repository = repository;
+        this.validator = validator;
+        this.comparator = comparator;
+    }
+
+    @Transactional
+    public BatchIngestResponse ingest(List<EventRequestDto> events) {
+
+        BatchIngestResponse response = new BatchIngestResponse();
+
+        for (EventRequestDto dto : events) {
+
+            // 1️⃣ Validate
+            Optional<String> error = validator.validate(dto);
+            if (error.isPresent()) {
+                response.rejected++;
+                response.rejections.add(new RejectionDto(dto.eventId, error.get()));
+                continue;
+            }
+
+            Instant receivedTime = Instant.now();
+
+            // 2️⃣ Dedup / Update
+            Optional<EventEntity> existingOpt = repository.findByEventId(dto.eventId);
+
+            if (existingOpt.isEmpty()) {
+                // Insert new
+                repository.save(toEntity(dto, receivedTime));
+                response.accepted++;
+                continue;
+            }
+
+            EventEntity existing = existingOpt.get();
+
+            if (comparator.isSamePayload(existing, dto)) {
+                response.deduped++;
+                continue;
+            }
+
+            if (receivedTime.isAfter(existing.getReceivedTime())) {
+                // Update
+                existing.setEventTime(dto.eventTime);
+                existing.setMachineId(dto.machineId);
+                existing.setDurationMs(dto.durationMs);
+                existing.setDefectCount(dto.defectCount);
+                existing.setReceivedTime(receivedTime);
+
+                response.updated++;
+            } else {
+                response.deduped++;
+            }
+        }
+
+        return response;
+    }
+
+    private EventEntity toEntity(EventRequestDto dto, Instant receivedTime) {
+        EventEntity e = new EventEntity();
+        e.setEventId(dto.eventId);
+        e.setEventTime(dto.eventTime);
+        e.setReceivedTime(receivedTime);
+        e.setMachineId(dto.machineId);
+        e.setDurationMs(dto.durationMs);
+        e.setDefectCount(dto.defectCount);
+        return e;
+    }
+}
