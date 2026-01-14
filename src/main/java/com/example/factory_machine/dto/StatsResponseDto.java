@@ -12,4 +12,16 @@ public class StatsResponseDto {
     public long defectsCount;
     public double avgDefectRate;
     public String status;
+    public StatsResponseDto(){
+
+    }
+    public StatsResponseDto(
+            Long eventsCount,
+            Long defectsCount
+    ) {
+        this.eventsCount = eventsCount == null ? 0 : eventsCount;
+        this.defectsCount = defectsCount == null ? 0 : defectsCount;
+    }
+
+
 }

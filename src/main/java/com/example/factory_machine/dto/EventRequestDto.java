@@ -8,5 +8,8 @@ public class EventRequestDto {
     public String machineId;
     public long durationMs;
     public int defectCount;
+    public String lineId;
+    public String factoryId;
+
 }
 

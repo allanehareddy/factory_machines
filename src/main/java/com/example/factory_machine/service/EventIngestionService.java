@@ -9,7 +9,6 @@ import com.example.factory_machine.util.PayloadComparator;
 import com.example.factory_machine.validation.EventValidator;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import com.example.factory_machine.service.EventIngestionService;
 
 import java.time.Instant;
 import java.util.List;
@@ -38,7 +37,7 @@ public class EventIngestionService {
 
         for (EventRequestDto dto : events) {
 
-            // 1️⃣ Validate
+            //  Validate
             Optional<String> error = validator.validate(dto);
             if (error.isPresent()) {
                 response.rejected++;
@@ -48,7 +47,7 @@ public class EventIngestionService {
 
             Instant receivedTime = Instant.now();
 
-            // 2️⃣ Dedup / Update
+            //  Dedup / Update
             Optional<EventEntity> existingOpt = repository.findByEventId(dto.eventId);
 
             if (existingOpt.isEmpty()) {
@@ -83,13 +82,16 @@ public class EventIngestionService {
     }
 
     private EventEntity toEntity(EventRequestDto dto, Instant receivedTime) {
-        EventEntity e = new EventEntity();
-        e.setEventId(dto.eventId);
-        e.setEventTime(dto.eventTime);
-        e.setReceivedTime(receivedTime);
-        e.setMachineId(dto.machineId);
-        e.setDurationMs(dto.durationMs);
-        e.setDefectCount(dto.defectCount);
-        return e;
+        return new EventEntity(
+                dto.eventId,
+                dto.factoryId,
+                dto.lineId,
+                dto.machineId,
+                dto.eventTime,
+                receivedTime,
+                dto.durationMs,
+                dto.defectCount
+        );
     }
+
 }

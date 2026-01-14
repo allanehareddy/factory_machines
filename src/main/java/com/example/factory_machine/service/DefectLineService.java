@@ -1,17 +1,35 @@
 package com.example.factory_machine.service;
 
-public List<TopDefectLineDto> getTopDefectLines(
-        String factoryId,
-        Instant from,
-        Instant to,
-        int limit
-        ) {
+import com.example.factory_machine.dto.TopDefectLineDto;
+import com.example.factory_machine.repository.EventRepository;
+import org.springframework.stereotype.Service;
 
-        List<TopDefectLineDto> result =
-        repository.findTopDefectLines(factoryId, from, to);
+import java.time.Instant;
+import java.util.List;
 
-        // Apply limit in service (JPQL portability)
-        return result.size() > limit
-        ? result.subList(0, limit)
-        : result;
-        }
+@Service
+public class DefectLineService {
+
+    private final EventRepository repository;
+
+    public DefectLineService(EventRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<TopDefectLineDto> getTopDefectLines(
+            String factoryId,
+            String machineId,
+            Instant from,
+            Instant to,
+            int limit
+    ) {
+
+        List<TopDefectLineDto> results =
+                repository.findTopDefectLines(factoryId,machineId,from, to);
+
+        // Apply limit safely
+        return results.size() > limit
+                ? results.subList(0, limit)
+                : results;
+    }
+}
