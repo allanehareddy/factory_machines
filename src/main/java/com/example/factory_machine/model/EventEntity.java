@@ -97,7 +97,7 @@ public class EventEntity {
     private int defectCount;
 
     // ✅ REQUIRED by JPA
-    protected EventEntity() {}
+    public EventEntity() {}
 
     // ✅ MUST match toEntity() exactly
     public EventEntity(
