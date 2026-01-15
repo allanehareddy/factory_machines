@@ -9,7 +9,7 @@ import com.example.factory_machine.util.PayloadComparator;
 import com.example.factory_machine.validation.EventValidator;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -20,14 +20,16 @@ public class EventIngestionService {
     private final EventRepository repository;
     private final EventValidator validator;
     private final PayloadComparator comparator;
+    private final Clock clock;
 
     public EventIngestionService(
             EventRepository repository,
             EventValidator validator,
-            PayloadComparator comparator) {
+            PayloadComparator comparator,Clock clock) {
         this.repository = repository;
         this.validator = validator;
         this.comparator = comparator;
+        this.clock = clock;
     }
 
     @Transactional
@@ -45,7 +47,8 @@ public class EventIngestionService {
                 continue;
             }
 
-            Instant receivedTime = Instant.now();
+            Instant receivedTime = Instant.now(clock);
+
 
             //  Dedup / Update
             Optional<EventEntity> existingOpt = repository.findByEventId(dto.eventId);

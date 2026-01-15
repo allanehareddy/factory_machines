@@ -9,11 +9,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import com.example.factory_machine.dto.BatchIngestResponse;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.time.Clock;
 @SpringBootTest
 @Transactional
 class EventIngestionServiceTest {
@@ -63,18 +65,24 @@ class EventIngestionServiceTest {
     }
 
     @Test
-    void olderPayload_isIgnored() {
-        EventRequestDto e1 = baseEvent("E3");
-        ingestionService.ingest(List.of(e1));
+    void differentPayload_isUpdated_whenReceivedLater() {
+        EventRequestDto original = baseEvent("E3");
+        ingestionService.ingest(List.of(original));
 
-        EventRequestDto e2 = baseEvent("E3");
-        e2.setDefectCount(9); // different payload
+        EventRequestDto modified = modifiedPayload(original);
 
-        BatchIngestResponse res =
-                ingestionService.ingest(List.of(e2));
+        BatchIngestResponse res = ingestionService.ingest(List.of(modified));
 
-        assertEquals(1, res.deduped);
+        assertEquals(1, res.updated);
+        assertEquals(1, eventRepository.count());
     }
+
+    private EventRequestDto modifiedPayload(EventRequestDto original) {
+        EventRequestDto e = baseEvent(original.getEventId());
+        e.setDurationMs(original.getDurationMs() + 100); // change payload
+        return e;
+    }
+
 
     @Test
     void invalidDuration_rejected() {
@@ -117,8 +125,11 @@ class EventIngestionServiceTest {
         Instant start = Instant.parse("2026-01-10T10:00:00Z");
         Instant end   = Instant.parse("2026-01-10T11:00:00Z");
 
-        EventRequestDto atStart = baseEvent("E_START");       // INCLUDED
-        EventRequestDto atEnd   = baseEvent("E_END");           // EXCLUDED
+        EventRequestDto atStart = baseEvent("E_START");
+        atStart.setEventTime(start);              // INCLUDED
+
+        EventRequestDto atEnd = baseEvent("E_END");
+        atEnd.setEventTime(end);                  // EXCLUDED
 
         ingestionService.ingest(List.of(atStart, atEnd));
 
