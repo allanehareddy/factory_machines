@@ -71,7 +71,7 @@ public class EventIngestionService {
                 existing.setDurationMs(dto.durationMs);
                 existing.setDefectCount(dto.defectCount);
                 existing.setReceivedTime(receivedTime);
-
+                repository.save(existing);
                 response.updated++;
             } else {
                 response.deduped++;

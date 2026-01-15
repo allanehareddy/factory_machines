@@ -36,13 +36,15 @@ class EventIngestionServiceTest {
 
     @Test
     void duplicateEventId_isDeduped() {
-        ingestionService.ingest(List.of(baseEvent("E1")));
-        BatchIngestResponse res =
-                ingestionService.ingest(List.of(baseEvent("E1")));
+        EventRequestDto e1 = baseEvent("E1");
+
+        ingestionService.ingest(List.of(e1));
+        BatchIngestResponse res = ingestionService.ingest(List.of(e1));
 
         assertEquals(1, res.deduped);
         assertEquals(1, eventRepository.count());
     }
+
 
     @Test
     void newerPayload_updatesEvent() throws InterruptedException {
