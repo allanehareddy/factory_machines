@@ -96,10 +96,9 @@ public class EventEntity {
     private long durationMs;
     private int defectCount;
 
-    // ✅ REQUIRED by JPA
+
     public EventEntity() {}
 
-    // ✅ MUST match toEntity() exactly
     public EventEntity(
             String eventId,
             String factoryId,

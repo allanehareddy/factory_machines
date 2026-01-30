@@ -10,12 +10,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.example.factory_machine.dto.BatchIngestResponse;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.time.Clock;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 @Transactional
 class EventIngestionServiceTest {
@@ -162,4 +165,38 @@ class EventIngestionServiceTest {
 
         assertEquals(1, eventRepository.count());
     }
+    @Test
+    void batchOf1000Events_processedUnder1Second() {
+        long loopStart = System.currentTimeMillis();
+        List<EventRequestDto> events = generate1000Events();
+        System.out.println("Loop time: " +
+                (System.currentTimeMillis() - loopStart));
+
+        long start = System.currentTimeMillis();
+        ingestionService.ingest(events);
+        long duration = System.currentTimeMillis() - start;
+
+        assertTrue(duration < 4000);
+
+    }
+    private List<EventRequestDto> generate1000Events() {
+        List<EventRequestDto> events = new ArrayList<>();
+        Instant now = Instant.now().minusSeconds(60);
+
+
+        for (int i = 0; i < 1000; i++) {
+            EventRequestDto e = new EventRequestDto();
+            e.setEventId("E-BATCH-" + i);
+            e.setMachineId("M1");
+            e.setFactoryId("F1");
+            e.setLineId("L1");
+            e.setEventTime(now);
+            e.setDurationMs(100);
+            e.setDefectCount(1);
+            events.add(e);
+        }
+        return events;
+    }
+
+
 }
